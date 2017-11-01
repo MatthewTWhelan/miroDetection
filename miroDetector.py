@@ -86,8 +86,17 @@ class miroDetector:
                         float(cv2.countNonZero(img_thresh)) / 
                 (float(np.shape(img)[0]) * float(np.shape(img)[1])) 
                                                                     )
-        if thresh_prop > 0.15:
+        if thresh_prop > 0.3:
             thresh = self.histogramThresh(img)
+        elif thresh_prop > 0.15:
+            while thresh_prop > 0.15:
+                thresh = mean*(1 + -k*(stddev/128 - 1))
+                img_thresh = cv2.inRange(img_grey, thresh, 255)
+                thresh_prop = (
+                                float(cv2.countNonZero(img_thresh)) / 
+                        (float(np.shape(img)[0]) * float(np.shape(img)[1]))
+                                                                    )
+                k += 0.05
 
         _,contours,_ = cv2.findContours(img_thresh, cv2.RETR_TREE, 
                                                 cv2.CHAIN_APPROX_SIMPLE)
