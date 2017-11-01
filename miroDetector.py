@@ -44,21 +44,20 @@ class miroDetector:
             while winSize < min(w,h):
                 for x_win in range(x, x + w - winSize, 4):
                     for y_win in range(y, y + h - winSize, 4):
-                        try:
-                            win = img_crop[y_win:(y_win+winSize), x_win:(x_win+winSize)]
-                            img_roi = cv2.resize(win,(64,64))
-                            hog_feature = np.transpose(self.hog.compute(img_roi)).astype(np.float32)
-                            result = self.svm.predict(hog_feature)[1]
-                            if result>0:
-                                detected.append(((x_win,y_win,winSize),result))
-                        except cv2.error:
-                            print win
-                            pass
+                        win = img_crop[y_win:(y_win+winSize), x_win:(x_win+winSize)]
+                        if np.size(win) == 0:
+                            continue
+                        img_roi = cv2.resize(win,(64,64))
+                        hog_feature = np.transpose(self.hog.compute(img_roi)).astype(np.float32)
+                        result = self.svm.predict(hog_feature)[1]
+                        if result>0:
+                            detected.append(((x_win,y_win,winSize),result))
                 winSize += 8
 
         if len(detected) == 0:
             print "No MiRo detected"
             imshow(img)
+            sys.exit(0)
             
         else:
             detectedZones = self.overlap(detected)
@@ -193,7 +192,7 @@ class miroDetector:
             x = xMax - xMin
             y = yMax - yMin
             
-            if x < 10 or y < 10:
+            if x < 10 or y < 10 or (y/x) < 0.5 or (x/y) < 0.5:
                 delIndex.append(group)
             
             group += 1
@@ -203,7 +202,7 @@ class miroDetector:
         return detectedZones
                 
     def displayZones(self, img, detectedZones):
-        
+        i = 1
         for zone in detectedZones:
             (xMin,yMin) = zone[0:2]
             (xMax,yMax) = zone[2:4]
@@ -220,10 +219,11 @@ class miroDetector:
             #~ BPerc = int(100 * noBack / total)
                         
             cv2.rectangle(img, (xMin,yMin), (xMax,yMax), (0,0,255), 2)
+            cv2.imwrite(str(i) + 'image.png',img[yMin:yMax,xMin:xMax])
             cv2.putText(img, str(noLSide), (xMin,yMin), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
             cv2.putText(img, str(noRSide), (xMin,yMin+25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
             cv2.putText(img, str(noBack), (xMin,yMin+50), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
-        
+            i += 1
         imshow(img)
             
     def ears(self, img, detectedZones):
