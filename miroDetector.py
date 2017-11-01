@@ -1,7 +1,7 @@
 # Matt Whelan
-# Here we will load up the trained SVM using HOG feature extraction. Then the
-# adaptive threshold will be applied for finding a ROI, before attempting to
-# classify the ROI
+# Here we will load up the trained SVM using HOG feature extraction. 
+# Then the adaptive threshold will be applied for finding a ROI, before 
+# attempting to classify the ROI
 
 import numpy as np
 import cv2
@@ -25,8 +25,10 @@ class miroDetector:
         L2HysThreshold = 2.0000000000000001e-01
         gammaCorrection = 0
         nlevels = 64
-        self.hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,
-                                histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
+        self.hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,
+                                cellSize,nbins,derivAperture,winSigma,
+                                histogramNormType,L2HysThreshold,
+                                gammaCorrection,nlevels)
         self.svm = cv2.ml.SVM_load('svm.dat')
         
     def detector(self,img):
@@ -35,13 +37,11 @@ class miroDetector:
         
         roi = self.ROI(img_crop)
         
-        # The SVM classifier will now be run on each ROI. The ROI is first set to a square
-        # size, reduced (or increased) to size 64x64, then tested using HOG and SVM.
         detected = []
         for r in range(len(roi)):
             (x,y,w,h) = roi[r]
             winSize = 32
-            while winSize < min(w,h):
+            while winSize < max(w,h):
                 for x_win in range(x, x + w - winSize, 4):
                     for y_win in range(y, y + h - winSize, 4):
                         win = img_crop[y_win:(y_win+winSize), x_win:(x_win+winSize)]
@@ -71,8 +71,9 @@ class miroDetector:
         return detectedZones
 
     def ROI(self,img):
-        # thresholding the standard image
-        # using the histogram data to set the threshold so that only 15%, or less, is thresholded
+        # thresholding the standard image using the histogram data to 
+        # set the threshold so that only 15%, or less, is thresholded
+        
         k = 0.5
         thresh_prop = 1.0
         img_grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -81,11 +82,16 @@ class miroDetector:
         thresh = mean*(1 + -k*(stddev/128 - 1))
         img_thresh = cv2.inRange(img_grey, thresh, 255)
         
-        thresh_prop = float(cv2.countNonZero(img_thresh)) / (float(np.shape(img)[0]) * float(np.shape(img)[1]))
+        thresh_prop = ( 
+                        float(cv2.countNonZero(img_thresh)) / 
+                (float(np.shape(img)[0]) * float(np.shape(img)[1])) 
+                                                                    )
         if thresh_prop > 0.15:
             thresh = self.histogramThresh(img)
 
-        _,contours,_ = cv2.findContours(img_thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        _,contours,_ = cv2.findContours(img_thresh, cv2.RETR_TREE, 
+                                                cv2.CHAIN_APPROX_SIMPLE)
+        
         roi = []
         for c in contours:
             if cv2.contourArea(c) < 256:
@@ -116,16 +122,19 @@ class miroDetector:
         h_new = int(h*1.5)
         x_new = x - (w_new - w)/2
         y_new = y - (h_new - h)/2
-        if x_new >= 0:
-            x = x_new
-        if y_new >= 0:
-            y = y_new
         
-        return (x, y, w_new, h_new)
+        # edge cases
+        x = 0 if x < 0 else x_new
+        y = 0 if y < 0 else y_new
+        w = 319 if x + w_new > 319 else w_new
+        h = 239 if y + h_new > 239 else h_new
+        
+        return (x, y, w, h)
     
     def overlap(self,detected):
-        # This method counts the number of overlapping detected zones, determines most likely orientation, 
-        # and returns single detected regions with a count of the total number of detections per orientation
+        # This method counts the number of overlapping detected zones, 
+        # and returns single detected regions with a count of the total 
+        # number of detections per orientation
         
         x = []
         y = []
@@ -202,7 +211,7 @@ class miroDetector:
         return detectedZones
                 
     def displayZones(self, img, detectedZones):
-        i = 1
+
         for zone in detectedZones:
             (xMin,yMin) = zone[0:2]
             (xMax,yMax) = zone[2:4]
@@ -213,18 +222,14 @@ class miroDetector:
             noRSide = zone[5]
             noBack = zone[6]
             total = noLSide + noRSide + noBack
-            
-            #~ LPerc = int(100 * noLSide / total)
-            #~ RPerc = int(100 * noRSide / total)
-            #~ BPerc = int(100 * noBack / total)
                         
             cv2.rectangle(img, (xMin,yMin), (xMax,yMax), (0,0,255), 2)
-            cv2.imwrite(str(i) + 'image.png',img[yMin:yMax,xMin:xMax])
+
             cv2.putText(img, str(noLSide), (xMin,yMin), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
             cv2.putText(img, str(noRSide), (xMin,yMin+25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
             cv2.putText(img, str(noBack), (xMin,yMin+50), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
-            i += 1
-        imshow(img)
+
+        return img
             
     def ears(self, img, detectedZones):
         
@@ -250,7 +255,8 @@ class miroDetector:
 
 def imshow(img):
     cv2.imshow('image',img)
-    cv2.waitKey(50)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     
@@ -268,13 +274,14 @@ if __name__ == "__main__":
             print("argument \"image_path\" must be specified")
             sys.exit(0)
     img = cv2.imread(image)
-    cv2.imshow('image',img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    imshow(img)
     if img is None:
         print("Invalid image location specified")
         sys.exit(0)
     t0 = time.time()
-    miroDetector().detector(img)
+    detectedZones = miroDetector().detector(img)
+    print detectedZones
+    imgDetected = miroDetector().displayZones(img,detectedZones)
     t1 = time.time()
+    imshow(imgDetected)
     print t1 - t0
