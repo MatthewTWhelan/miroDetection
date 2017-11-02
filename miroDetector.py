@@ -52,6 +52,7 @@ class miroDetector:
                         result = self.svm.predict(hog_feature)[1]
                         if result>0:
                             detected.append(((x_win,y_win,winSize),result))
+                            print result
                 winSize += 8
 
         if len(detected) == 0:
