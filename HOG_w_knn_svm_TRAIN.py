@@ -13,6 +13,9 @@ import cv2
 import os
 import time
 
+test = True # If one wants to validate only, set this to true. If one is only
+            # interested in training the SVM/k-NN, set to false.
+
 def imshow(img):
     cv2.imshow('image',img)
     cv2.waitKey(0)
@@ -32,6 +35,8 @@ gammaCorrection = 0
 nlevels = 64
 hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,
                         histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
+
+print "Collecting image data..."
 
 # We have three classes for the body: MiRo's two side views and the back. Here we compute the
 # hog features for each
@@ -69,46 +74,9 @@ for filename in os.listdir(img_back_dir):
         hog_back[j,:] = np.reshape(h,np.size(h),1)
         j += 1
 
-
-# Doing now the same for MiRo's head: two side views and the back.
-img_head_l_dir = 'Training_images/MiRo_head/Left/'
-img_head_r_dir = 'Training_images/MiRo_head/Right/'
-img_head_back_dir = 'Training_images/MiRo_head/Back/'
-no_head_l = len(os.listdir(img_head_l_dir))
-no_head_r = len(os.listdir(img_head_r_dir))
-no_head_back = len(os.listdir(img_head_back_dir))
-hog_head_l = np.zeros((no_head_l,1764))
-hog_head_r = np.zeros((no_head_r,1764))
-hog_head_back = np.zeros((no_head_back,1764))
-j = 0
-for filename in os.listdir(img_head_l_dir):
-    img = cv2.imread(os.path.join(img_head_l_dir,filename))
-    if img is not None:
-        img = cv2.resize(img,(64,64)) # resizing the image to 64x64 size
-        h = hog.compute(img)
-        hog_head_l[j,:] = np.reshape(h,np.size(h),1)
-        j += 1
-j = 0
-for filename in os.listdir(img_head_r_dir):
-    img = cv2.imread(os.path.join(img_head_r_dir,filename))
-    if img is not None:
-        img = cv2.resize(img,(64,64)) # resizing the image to 64x64 size
-        h = hog.compute(img)
-        hog_head_r[j,:] = np.reshape(h,np.size(h),1)
-        j += 1
-j = 0
-for filename in os.listdir(img_head_back_dir):
-    img = cv2.imread(os.path.join(img_head_back_dir,filename))
-    if img is not None:
-        img = cv2.resize(img,(64,64)) # resizing the image to 64x64 size
-        h = hog.compute(img)
-        hog_head_back[j,:] = np.reshape(h,np.size(h),1)
-        j += 1
-
 # Computing HOG features for the negative images        
 negative_images_dir = 'Training_images/Negatives/'
 no_negs = len(os.listdir(negative_images_dir))
-print no_negs
 j = 0
 hog_negs = np.zeros((no_negs,1764))
 for filename in os.listdir(negative_images_dir):
@@ -124,51 +92,88 @@ train = np.vstack((
                     hog_side_l, 
                     hog_side_r, 
                     hog_back, 
-                    hog_head_l,
-                    hog_head_r,
-                    hog_head_back,
                     hog_negs)).astype(np.float32)
-print np.shape(train)
 
 # create the training labels: left side = 1, right side = 2, back = 3, negs = -1
 side_l_label = 1
 side_r_label = 2
 back_label = 3
-head_l_label = 4
-head_r_label = 5
-head_back_label = 6
 negs_label = -1
 train_labels = np.concatenate(
               (np.repeat(side_l_label,no_side_l),
                np.repeat(side_r_label,no_side_r),
                np.repeat(back_label,no_back),               
-               np.repeat(head_l_label,no_head_l), 
-               np.repeat(head_r_label,no_head_r),
-               np.repeat(head_back_label,no_head_back),
                np.repeat(negs_label,no_negs)), 
                axis=0)[:,np.newaxis]
+print np.shape(train_labels)
 
-# first we train using k-NN
-knn = cv2.ml.KNearest_create()
-knn.train(train, cv2.ml.ROW_SAMPLE, train_labels)
+if not test:
+    print "Training only"
+    # first we train using k-NN
+    print "Training the k-NN..."
 
-# let's save the data in order to retrieve it for classification later
-np.savez('knn.npz', train=train, train_labels=train_labels)
+    knn = cv2.ml.KNearest_create()
+    knn.train(train, cv2.ml.ROW_SAMPLE, train_labels)
 
-# the data can later be loaded in the following way, ready for use in classifying
-with np.load('knn.npz') as data:
-    train = data['train']
-    train_labels = data['train_labels']
-knn.train(train, cv2.ml.ROW_SAMPLE, train_labels)
+    # let's save the data in order to retrieve it for classification later
+    np.savez('knn.npz', train=train, train_labels=train_labels)
 
-## retrieving the result for k-NN is done as follows
-#result = knn.findNearest(test,k=5)[1]
+    # the data can later be loaded in the following way, ready for use in classifying
+    with np.load('knn.npz') as data:
+        train = data['train']
+        train_labels = data['train_labels']
+    knn.train(train, cv2.ml.ROW_SAMPLE, train_labels)
 
-# next we train for SVM, and save as a dat file
-svm = cv2.ml.SVM_create()
-svm.setKernel(cv2.ml.SVM_LINEAR)
-svm.setType(cv2.ml.SVM_C_SVC)
-svm.train(train, cv2.ml.ROW_SAMPLE, train_labels)
-# here we can save the SVM data and then load it back in for classifying
-svm.save('svm.dat')
-svm = cv2.ml.SVM_load('svm.dat')
+    ## retrieving the result for k-NN is done as follows
+    #result = knn.findNearest(test,k=5)[1]
+
+    # next we train for SVM, and save as a dat file
+    print "Training the SVM..."
+    svm = cv2.ml.SVM_create()
+    svm.setKernel(cv2.ml.SVM_LINEAR)
+    svm.setType(cv2.ml.SVM_C_SVC)
+    svm.train(train, cv2.ml.ROW_SAMPLE, train_labels)
+    # here we can save the SVM data and then load it back in for classifying
+    svm.save('svm.dat')
+    svm = cv2.ml.SVM_load('svm.dat')
+    print "Training complete"
+
+else:
+    # Below lines for testing purposes. It will train the SVM on a
+    # subset of the training data, then validate on the rest.
+    import random
+    print "Running validation"
+    print "Training the SVM..."
+    for i in range(50):
+        index_l = random.sample(range(no_side_l),50)
+        index_r = random.sample(range(no_side_l, no_side_l + no_side_r),50)
+        index_b = random.sample(range(no_side_l + no_side_r, no_side_l + no_side_r + no_back),100)
+        index_neg = random.sample(range(no_side_l + no_side_r + no_back, no_side_l + no_side_r + no_back + no_negs),1000)
+    index = np.concatenate((index_l,index_r,index_b,index_neg),axis=0)
+
+    val_data = train[index,:]
+    val_labels = train_labels[index]
+    #~ print np.shape(val_data)
+    #~ print np.shape(val_labels)
+
+    train = np.delete(train,index,axis=0)
+    train_labels = np.delete(train_labels,index,axis=0)
+    #~ print np.shape(train)
+    #~ print np.shape(train_labels)
+
+    svm = cv2.ml.SVM_create()
+    svm.setKernel(cv2.ml.SVM_LINEAR)
+    svm.setType(cv2.ml.SVM_C_SVC)
+    svm.train(train, cv2.ml.ROW_SAMPLE, train_labels)
+    result = svm.predict(val_data)[1]
+    print "Training complete"
+    no_correct = 0
+    no_false = 0
+    i = 0
+    for res in result:
+        if val_labels[i] == res:
+            no_correct += 1
+        else:
+            no_false += 1
+        i += 1
+    print "Percentage of correctly classified images is: ", float(no_correct) / len(val_labels)

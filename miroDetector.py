@@ -1,7 +1,7 @@
+#!/usr/bin/python
+
 # Matt Whelan
-# Here we will load up the trained SVM using HOG feature extraction. 
-# Then the adaptive threshold will be applied for finding a ROI, before 
-# attempting to classify the ROI
+# MiRo detection using HOG features and an kernal machine classifier (SVM)
 
 import numpy as np
 import cv2
@@ -38,6 +38,7 @@ class miroDetector:
         roi = self.ROI(img_crop)
         
         detected = []
+        i = 1
         for r in range(len(roi)):
             (x,y,w,h) = roi[r]
             winSize = 32
@@ -51,8 +52,11 @@ class miroDetector:
                         hog_feature = np.transpose(self.hog.compute(img_roi)).astype(np.float32)
                         result = self.svm.predict(hog_feature)[1]
                         if result>0:
+                            # the below two lines are useful for storing classified regions, if needed for adding to negative images etc..
+                            #cv2.imwrite(str(i) + 'image.png', win)
+                            #i += 1
+                            
                             detected.append(((x_win,y_win,winSize),result))
-                            print result
                 winSize += 8
 
         if len(detected) == 0:
@@ -62,9 +66,8 @@ class miroDetector:
             
         else:
             detectedZones = self.overlap(detected)
-            #self.ears(img, detectedZones)
 
-            # adding 80 to the detection coordinates to account for cropped image
+            # adding 80 to the y detection coordinates to account for cropped image
             for det in detectedZones:
                 det[1] += 80
                 det[3] += 80
@@ -103,11 +106,13 @@ class miroDetector:
                                                 cv2.CHAIN_APPROX_SIMPLE)
         
         roi = []
+        print len(contours)
         for c in contours:
             if cv2.contourArea(c) < 256:
                 continue
             (x, y, w, h) = cv2.boundingRect(c)
             (x, y, w, h) = self.ROI_expand((x,y,w,h))
+            #imshow(img[y:y+h,x:x+w])
             roi.append((x,y,w,h))
         
         return roi
@@ -238,30 +243,8 @@ class miroDetector:
             cv2.putText(img, str(noLSide), (xMin,yMin), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
             cv2.putText(img, str(noRSide), (xMin,yMin+25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
             cv2.putText(img, str(noBack), (xMin,yMin+50), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
-
+            
         return img
-            
-    def ears(self, img, detectedZones):
-        
-        for zone in detectedZones:
-            xMin = int(zone[0])
-            yMin = int(zone[1])
-            xMax = int(zone[2])
-            yMax = int(zone[3])
-            
-            img_grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            
-            y_size = yMax - yMin
-            x_size = xMax - xMin
-            
-            new_yMin = int(yMin - y_size)
-            if new_yMin < 0:
-                new_yMin = 0
-                       
-            region = img[new_yMin:yMax, xMin:xMax]
-            
-            #thresh = 
-            imshow(region)
 
 def imshow(img):
     cv2.imshow('image',img)
