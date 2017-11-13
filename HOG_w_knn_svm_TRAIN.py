@@ -93,6 +93,7 @@ train = np.vstack((
                     hog_side_r, 
                     hog_back, 
                     hog_negs)).astype(np.float32)
+print np.shape(train)
 
 # create the training labels: left side = 1, right side = 2, back = 3, negs = -1
 side_l_label = 1
@@ -136,6 +137,7 @@ if not test:
     # here we can save the SVM data and then load it back in for classifying
     svm.save('svm.dat')
     svm = cv2.ml.SVM_load('svm.dat')
+    
     print "Training complete"
 
 else:

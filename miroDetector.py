@@ -32,6 +32,7 @@ class miroDetector:
         self.svm = cv2.ml.SVM_load('svm.dat')
         
     def detector(self,img):
+        
         # cropping off the top third of the image
         img_crop = img[80:239, 0:319]
         
@@ -50,12 +51,12 @@ class miroDetector:
                             continue
                         img_roi = cv2.resize(win,(64,64))
                         hog_feature = np.transpose(self.hog.compute(img_roi)).astype(np.float32)
-                        result = self.svm.predict(hog_feature)[1]
+                        result = self.svm.predict(hog_feature)
+                        weights = self.svm.getClassWeights
                         if result>0:
                             # the below two lines are useful for storing classified regions, if needed for adding to negative images etc..
                             #cv2.imwrite(str(i) + 'image.png', win)
                             #i += 1
-                            
                             detected.append(((x_win,y_win,winSize),result))
                 winSize += 8
 
@@ -194,7 +195,8 @@ class miroDetector:
                 if y[i] + win[i] > groupRegions[int(groups[i]-1),3]:
                     groupRegions[int(groups[i]-1),3] = y[i] + win[i]
         
-        noOrientations = np.zeros((no_groups,3)) # each row represents a group, and is organised as (noLSide, noRSide, noBack)
+        noOrientations = np.zeros((no_groups,3)) # each row represents a
+        # group, and is organised as (noLSide, noRSide, noBack)
         for i in range(len(groups)):
             if detected[i][1] == 1.0:
                 noOrientations[int(groups[i])-1,0] += 1
@@ -240,9 +242,9 @@ class miroDetector:
                         
             cv2.rectangle(img, (xMin,yMin), (xMax,yMax), (0,0,255), 2)
 
-            cv2.putText(img, str(noLSide), (xMin,yMin), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
-            cv2.putText(img, str(noRSide), (xMin,yMin+25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
-            cv2.putText(img, str(noBack), (xMin,yMin+50), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
+            #~ cv2.putText(img, str(noLSide), (xMin,yMin), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
+            #~ cv2.putText(img, str(noRSide), (xMin,yMin+25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
+            #~ cv2.putText(img, str(noBack), (xMin,yMin+50), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
             
         return img
 
@@ -266,6 +268,7 @@ if __name__ == "__main__":
         else:
             print("argument \"image_path\" must be specified")
             sys.exit(0)
+    image = "Test_images/test1.png"
     img = cv2.imread(image)
     imshow(img)
     if img is None:
