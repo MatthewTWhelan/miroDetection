@@ -13,7 +13,7 @@ import cv2
 import os
 import time
 
-test = True # If one wants to validate only, set this to true. If one is only
+test = False # If one wants to validate only, set this to true. If one is only
             # interested in training the SVM/k-NN, set to false.
 
 def imshow(img):

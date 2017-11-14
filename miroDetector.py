@@ -32,7 +32,8 @@ class miroDetector:
         self.svm = cv2.ml.SVM_load('svm.dat')
         
     def detector(self,img):
-        
+        t0 = time.time()
+
         # cropping off the top third of the image
         img_crop = img[80:239, 0:319]
         
@@ -55,9 +56,14 @@ class miroDetector:
                         weights = self.svm.getClassWeights
                         if result>0:
                             # the below two lines are useful for storing classified regions, if needed for adding to negative images etc..
-                            #cv2.imwrite(str(i) + 'image.png', win)
-                            #i += 1
+                            cv2.imwrite('images_stored/' + str(i) + 'image.png', win)
+                            i += 1
                             detected.append(((x_win,y_win,winSize),result))
+                        t1 = time.time()
+                        t = t1 - t0
+                        if t > 2:
+                            print "exiting"
+                            sys.exit(0)
                 winSize += 8
 
         if len(detected) == 0:
@@ -107,7 +113,6 @@ class miroDetector:
                                                 cv2.CHAIN_APPROX_SIMPLE)
         
         roi = []
-        print len(contours)
         for c in contours:
             if cv2.contourArea(c) < 256:
                 continue
@@ -245,13 +250,14 @@ class miroDetector:
             #~ cv2.putText(img, str(noLSide), (xMin,yMin), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
             #~ cv2.putText(img, str(noRSide), (xMin,yMin+25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
             #~ cv2.putText(img, str(noBack), (xMin,yMin+50), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
+
+            imshow(img)
             
         return img
 
 def imshow(img):
     cv2.imshow('image',img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    cv2.waitKey(100)
 
 if __name__ == "__main__":
     
