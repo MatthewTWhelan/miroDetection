@@ -23,7 +23,11 @@ import os
 import time
 
 test = False # If one wants to validate only, set this to true. If one is only
+<<<<<<< HEAD:HOG_w_svm_TRAIN.py
              # interested in training the SVM, set to false.
+=======
+            # interested in training the SVM/k-NN, set to false.
+>>>>>>> 53480592b08e5e97f89f44ba0814e0a596992916:HOG_w_knn_svm_TRAIN.py
 
 def imshow(img):
     cv2.imshow('image',img)
