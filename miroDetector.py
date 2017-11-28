@@ -45,7 +45,6 @@ class miroDetector:
         self.svmCon = cv2.ml.SVM_load("svmCon.dat")
         self.svmSupportVector = self.svmCon.getSupportVectors()
         
-<<<<<<< HEAD
         self.svmFace = cv2.ml.SVM_load("svmFace.dat")
         
     def detector(self,img,faces=False):
@@ -60,11 +59,9 @@ class miroDetector:
 
         (self.resY, self.resX, _) = np.shape(img)
         #print help(self.svmCon.getDecisionFunction)
-=======
-    def detector(self,img):
+
         t0 = time.time()
 
->>>>>>> 53480592b08e5e97f89f44ba0814e0a596992916
         # cropping off the top third of the image
         img_crop = img[int(self.resY/3):self.resY, 0:self.resX]
         
@@ -74,7 +71,6 @@ class miroDetector:
         detectedFaces = []
         i = 1
         for r in range(len(roi)):
-<<<<<<< HEAD
             if faces:
                 (x,y,w,h) = roi[r]
                 winSize = 32
@@ -143,31 +139,6 @@ class miroDetector:
                                 return None, None, None # to break the detector if it's taking more than 2 seconds
                             
                     winSize += 8
-=======
-            (x,y,w,h) = roi[r]
-            winSize = 32
-            while winSize < max(w,h):
-                for x_win in range(x, x + w - winSize, 4):
-                    for y_win in range(y, y + h - winSize, 4):
-                        win = img_crop[y_win:(y_win+winSize), x_win:(x_win+winSize)]
-                        if np.size(win) == 0:
-                            continue
-                        img_roi = cv2.resize(win,(64,64))
-                        hog_feature = np.transpose(self.hog.compute(img_roi)).astype(np.float32)
-                        result = self.svm.predict(hog_feature)
-                        weights = self.svm.getClassWeights
-                        if result>0:
-                            # the below two lines are useful for storing classified regions, if needed for adding to negative images etc..
-                            cv2.imwrite('images_stored/' + str(i) + 'image.png', win)
-                            i += 1
-                            detected.append(((x_win,y_win,winSize),result))
-                        t1 = time.time()
-                        t = t1 - t0
-                        if t > 2:
-                            print "exiting"
-                            sys.exit(0)
-                winSize += 8
->>>>>>> 53480592b08e5e97f89f44ba0814e0a596992916
 
         if len(detected) == 0:
             print "No MiRo detected"
@@ -408,17 +379,9 @@ class miroDetector:
             
             cv2.rectangle(img, (xMin,yMin), (xMax,yMax), (0,0,255), 2)
 
-<<<<<<< HEAD
             cv2.putText(img, str(round(confidences[i],2)), (xMin,yMin), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
             
             i += 1
-=======
-            #~ cv2.putText(img, str(noLSide), (xMin,yMin), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
-            #~ cv2.putText(img, str(noRSide), (xMin,yMin+25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
-            #~ cv2.putText(img, str(noBack), (xMin,yMin+50), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
-
-            imshow(img)
->>>>>>> 53480592b08e5e97f89f44ba0814e0a596992916
             
         return img
     
